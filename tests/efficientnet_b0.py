@@ -15,11 +15,12 @@ from data_generation import StanfordCarsDataloader as SCDL
 from tf_noisynn import LinearTransformNoiseLayer as LTNL 
 from tests.efficientnet import * 
 
-target_img_shape = (224, 224, 3) 
-dataloader = SCDL('train', data_shape=target_img_shape) 
+import utils 
 
+num_epochs = 12 
+valid_epochs = 3 
 
-
+metrics = ['accuracy', 'precision', 'recall']
 
 
 dnn_params = {
@@ -29,79 +30,138 @@ dnn_params = {
 }
 dropout_rate = 0.2 
 
+train_batch_size = 32 
+valid_batch_size = 16 
+
+# for cross-validation 
+valid_samplers = utils.get_valid_samplers(k=5)
+
+target_img_shape = (224, 224, 3) 
 
 
-noiseless_model = keras.Sequential([
-    keras.layers.Input(dataloader.data_shape),
+def get_noiseless_model(): 
+    return keras.Sequential([
+        keras.layers.Input(target_img_shape),
 
-    EfficientNetItems.get_conv1(**dnn_params), 
-    EfficientNetItems.get_bn1(), 
-    keras.activations.swish, 
+        EfficientNetItems.get_conv1(**dnn_params), 
+        EfficientNetItems.get_bn1(), 
+        keras.layers.Activation(keras.activations.swish), 
 
-    *EfficientNetItems.get_block1(**dnn_params), 
-    *EfficientNetItems.get_block2(**dnn_params), 
-    *EfficientNetItems.get_block3(**dnn_params), 
-    *EfficientNetItems.get_block4(**dnn_params), 
-    *EfficientNetItems.get_block5(**dnn_params), 
-    *EfficientNetItems.get_block6(**dnn_params), 
-    *EfficientNetItems.get_block7(**dnn_params), 
+        *EfficientNetItems.get_block1(**dnn_params), 
+        *EfficientNetItems.get_block2(**dnn_params), 
+        *EfficientNetItems.get_block3(**dnn_params), 
+        *EfficientNetItems.get_block4(**dnn_params), 
+        *EfficientNetItems.get_block5(**dnn_params), 
+        *EfficientNetItems.get_block6(**dnn_params), 
+        *EfficientNetItems.get_block7(**dnn_params), 
 
-    EfficientNetItems.get_conv2(**dnn_params), 
-    EfficientNetItems.get_bn2(), 
-    keras.activations.swish, 
-    EfficientNetItems.get_pool(), 
-    EfficientNetItems.get_dropout(dropout_rate), 
-    EfficientNetItems.get_fc(196), 
- 
+        EfficientNetItems.get_conv2(**dnn_params), 
+        EfficientNetItems.get_bn2(), 
+        keras.layers.Activation(keras.activations.swish), 
+        EfficientNetItems.get_pool(), 
+        EfficientNetItems.get_dropout(dropout_rate), 
+        EfficientNetItems.get_fc(196), 
+    
     ])
 
-ltnl_model = keras.Sequential([
-    keras.layers.Input(dataloader.data_shape),
+def get_ltnl_model(): 
+    return keras.Sequential([
+        keras.layers.Input(target_img_shape),
 
-    keras.layers.Conv2D(32, 3, padding='same', activation=None), 
-    keras.layers.MaxPooling2D(pool_size=2),
-    keras.layers.Activation('relu'),
-    
-    keras.layers.Conv2D(20, 5, padding='same', activation=None),
-    keras.layers.MaxPooling2D(pool_size=3),
-    keras.layers.Activation('relu'),
+        EfficientNetItems.get_conv1(**dnn_params), 
+        EfficientNetItems.get_bn1(), 
+        keras.layers.Activation(keras.activations.swish), 
 
-    keras.layers.Conv2D(10, 5, padding='same', activation=None),
-    keras.layers.MaxPooling2D(pool_size=5),
-    keras.layers.Activation('relu'),
-    
-    keras.layers.Flatten(),
-    LTNL(), 
+        LTNL(), 
 
-    keras.layers.Dense(640, activation='relu'), 
-    LTNL(), 
+        *EfficientNetItems.get_block1(**dnn_params), 
+        LTNL(), 
+        *EfficientNetItems.get_block2(**dnn_params), 
+        LTNL(), 
+        *EfficientNetItems.get_block3(**dnn_params), 
+        LTNL(), 
+        *EfficientNetItems.get_block4(**dnn_params), 
+        LTNL(), 
+        *EfficientNetItems.get_block5(**dnn_params), 
+        LTNL(), 
+        *EfficientNetItems.get_block6(**dnn_params), 
+        LTNL(), 
+        *EfficientNetItems.get_block7(**dnn_params), 
+        LTNL(), 
 
-    keras.layers.Dense(320,  activation='relu'),
-    LTNL(), 
-    
-    keras.layers.Dense(196, activation='relu'), 
+        EfficientNetItems.get_conv2(**dnn_params), 
+        EfficientNetItems.get_bn2(), 
+        keras.layers.Activation(keras.activations.swish), 
+        LTNL(), 
+        EfficientNetItems.get_pool(), 
+        EfficientNetItems.get_dropout(dropout_rate), 
+        EfficientNetItems.get_fc(196), 
     ])
 
 
-def test_noiseless_model(): 
-    print("SUMMARY OF EfficientNetB0 (no noise injected) MODEL: ")
-    noiseless_model.summary() 
-
-    noiseless_model.compile(optimizer='adam',
-                loss = keras.losses.BinaryCrossentropy(from_logits=True),
-                metrics = ['accuracy', 'precision', 'recall']) 
+def train_noiseless_models(): 
+    print("EfficientNetB0 (no noise injected) MODEL TESTING: ")
     
-    # TODO: TEST IT 
-
-
-
-def test_ltnl_model(): 
-    print("SUMMARY OF EfficientNetB0 + LTNL MODEL: ")
-    ltnl_model.summary() 
-
-    ltnl_model.compile(optimizer='adam',
-                loss = keras.losses.BinaryCrossentropy(from_logits=True),
-                metrics = ['accuracy', 'precision', 'recall']) 
     
-    # TODO: TEST IT 
+    # do cross-validation 
+    for vsidx in range(len(valid_samplers)): 
+
+        save_dir = "./NoiselessB0_valid_"+str(vsidx)+"/" 
+        try: 
+            os.mkdir(save_dir) 
+        except: 
+            pass # just means it's already been made 
+
+
+        noiseless_model = get_noiseless_model() 
+        #noiseless_model.summary() 
+        noiseless_model.compile(optimizer='adam',
+                    loss = keras.losses.BinaryCrossentropy(from_logits=True),
+                    metrics = metrics) 
+
+        valid_sampler = valid_samplers[vsidx] 
+        train_dataloader = SCDL('train', data_shape=target_img_shape, valid_sampler=valid_sampler, batch_size=train_batch_size) 
+        valid_dataloader = SCDL('valid', data_shape=target_img_shape, valid_sampler=valid_sampler, batch_size=valid_batch_size) 
+
+        noiseless_model.fit(x=train_dataloader, validation_data=valid_dataloader, 
+                            verbose=2, epochs=num_epochs, validation_freq=valid_epochs, 
+                            callbacks = [utils.SaveEveryEpochCallback(save_dir)]) 
+
+
+
+
+def train_ltnl_models(): 
+    print("EfficientNetB0 + LTNL MODEL TESTING: ")
+    
+    
+    # do cross-validation 
+    for vsidx in range(len(valid_samplers)): 
+
+        save_dir = "./LTNLB0_valid_"+str(vsidx)+"/" 
+        try: 
+            os.mkdir(save_dir) 
+        except: 
+            pass # just means it's already been made 
+
+
+        ltnl_model = get_ltnl_model() 
+        #ltnl_model.summary() 
+        ltnl_model.compile(optimizer='adam',
+                    loss = keras.losses.BinaryCrossentropy(from_logits=True),
+                    metrics = metrics) 
+
+        valid_sampler = valid_samplers[vsidx] 
+        train_dataloader = SCDL('train', data_shape=target_img_shape, valid_sampler=valid_sampler, batch_size=train_batch_size) 
+        valid_dataloader = SCDL('valid', data_shape=target_img_shape, valid_sampler=valid_sampler, batch_size=valid_batch_size) 
+
+        ltnl_model.fit(x=train_dataloader, validation_data=valid_dataloader, 
+                            verbose=2, epochs=num_epochs, validation_freq=valid_epochs, 
+                            callbacks = [utils.SaveEveryEpochCallback(save_dir)]) 
+
+
+train_noiseless_models() 
+
+train_ltnl_models()
+
+
 

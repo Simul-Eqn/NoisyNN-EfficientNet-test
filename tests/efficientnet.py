@@ -123,7 +123,13 @@ def get_mbconv_block_layers(in_channels, out_channels, layers, stride, expansion
 class EfficientNetItems(): 
 
     @staticmethod 
+    def print(*args, **kwargs): 
+        pass 
+        #print(*args, **kwargs) 
+
+    @staticmethod 
     def get_conv1(depth_coefficient, width_coefficient, drop_connect_rate): 
+        EfficientNetItems.print('conv1')
         return keras.layers.Conv2D(filters=round_filters(32, width_coefficient),
                                                 kernel_size=(3, 3),
                                                 strides=2,
@@ -131,11 +137,13 @@ class EfficientNetItems():
 
     @staticmethod 
     def get_bn1(): 
+        EfficientNetItems.print('bn1')
         return keras.layers.BatchNormalization() 
 
 
     @staticmethod 
     def get_block1(depth_coefficient, width_coefficient, drop_connect_rate): 
+        EfficientNetItems.print('block1') 
         return get_mbconv_block_layers(in_channels=round_filters(32, width_coefficient),
                                             out_channels=round_filters(16, width_coefficient),
                                             layers=round_repeats(1, depth_coefficient),
@@ -144,6 +152,7 @@ class EfficientNetItems():
 
     @staticmethod 
     def get_block2(depth_coefficient, width_coefficient, drop_connect_rate): 
+        EfficientNetItems.print('block2') 
         return get_mbconv_block_layers(in_channels=round_filters(16, width_coefficient),
                                             out_channels=round_filters(24, width_coefficient),
                                             layers=round_repeats(2, depth_coefficient),
@@ -152,6 +161,7 @@ class EfficientNetItems():
 
     @staticmethod 
     def get_block3(depth_coefficient, width_coefficient, drop_connect_rate): 
+        EfficientNetItems.print('block3') 
         return get_mbconv_block_layers(in_channels=round_filters(24, width_coefficient),
                                             out_channels=round_filters(40, width_coefficient),
                                             layers=round_repeats(2, depth_coefficient),
@@ -160,6 +170,7 @@ class EfficientNetItems():
 
     @staticmethod 
     def get_block4(depth_coefficient, width_coefficient, drop_connect_rate): 
+        EfficientNetItems.print('block4') 
         return get_mbconv_block_layers(in_channels=round_filters(40, width_coefficient),
                                             out_channels=round_filters(80, width_coefficient),
                                             layers=round_repeats(3, depth_coefficient),
@@ -168,6 +179,7 @@ class EfficientNetItems():
 
     @staticmethod 
     def get_block5(depth_coefficient, width_coefficient, drop_connect_rate): 
+        EfficientNetItems.print('block5') 
         return get_mbconv_block_layers(in_channels=round_filters(80, width_coefficient),
                                             out_channels=round_filters(112, width_coefficient),
                                             layers=round_repeats(3, depth_coefficient),
@@ -176,6 +188,7 @@ class EfficientNetItems():
 
     @staticmethod 
     def get_block6(depth_coefficient, width_coefficient, drop_connect_rate): 
+        EfficientNetItems.print('block6') 
         return get_mbconv_block_layers(in_channels=round_filters(112, width_coefficient),
                                             out_channels=round_filters(192, width_coefficient),
                                             layers=round_repeats(4, depth_coefficient),
@@ -184,6 +197,7 @@ class EfficientNetItems():
 
     @staticmethod 
     def get_block7(depth_coefficient, width_coefficient, drop_connect_rate): 
+        EfficientNetItems.print('block7') 
         return get_mbconv_block_layers(in_channels=round_filters(192, width_coefficient),
                                             out_channels=round_filters(320, width_coefficient),
                                             layers=round_repeats(1, depth_coefficient),
@@ -192,6 +206,7 @@ class EfficientNetItems():
 
     @staticmethod 
     def get_conv2(depth_coefficient, width_coefficient, drop_connect_rate): 
+        EfficientNetItems.print('conv2') 
         return keras.layers.Conv2D(filters=round_filters(1280, width_coefficient),
                                                 kernel_size=(1, 1),
                                                 strides=1,
@@ -199,18 +214,22 @@ class EfficientNetItems():
 
     @staticmethod 
     def get_bn2(): 
-        keras.layers.BatchNormalization()
+        EfficientNetItems.print('bn2') 
+        return keras.layers.BatchNormalization()
 
     @staticmethod 
     def get_pool(): 
+        EfficientNetItems.print('pool') 
         return keras.layers.GlobalAveragePooling2D()
 
     @staticmethod 
     def get_dropout(dropout_rate): 
+        EfficientNetItems.print('dropout') 
         return keras.layers.Dropout(rate=dropout_rate)
 
     @staticmethod 
     def get_fc(NUM_CLASSES:int): 
+        EfficientNetItems.print('fc') 
         return keras.layers.Dense(units=NUM_CLASSES, activation=keras.activations.softmax)
 
 

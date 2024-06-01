@@ -11,7 +11,7 @@ import keras
 
 import numpy as np 
 
-from stanford_cars_dataloader import StanfordCarsDataloader as SCDL
+from data_generation import StanfordCarsDataloader as SCDL
 
 target_img_shape = (240, 360, 3) 
 
