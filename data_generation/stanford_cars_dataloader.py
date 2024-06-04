@@ -64,13 +64,14 @@ class StanfordCarsDataloader(keras.utils.PyDataset):
         if (self.mode == 'test'): 
             self.indices = np.arange(StanfordCarsDataloader.testDF.shape[0])  
         elif (self.mode == 'valid'): 
-            self.indices = self.valid_sampler(np.arange(StanfordCarsDataloader.trainDF.shape[0]))
+            self.indices = self.valid_sampler(range(StanfordCarsDataloader.trainDF.shape[0]))
         else: 
-            valid_indices = self.valid_sampler(np.arange(StanfordCarsDataloader.trainDF.shape[0])) 
+            valid_indices = self.valid_sampler(range(StanfordCarsDataloader.trainDF.shape[0])) 
+            #print("VALID INDICES:",valid_indices)
             self.indices = [] 
             pos = 0 
             for i in range(StanfordCarsDataloader.trainDF.shape[0]): 
-                if i == valid_indices[pos]: 
+                if (pos < len(valid_indices)) and (i == valid_indices[pos]): 
                     pos += 1 
                 else: 
                     self.indices.append(i) 

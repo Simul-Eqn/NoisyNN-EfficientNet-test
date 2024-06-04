@@ -1,6 +1,6 @@
 import sys
 if 'idlelib.run' in sys.modules: sys.path.pop(1) # fixes an issue with import 
-sys.path.insert(0, '../')
+sys.path.insert(1, './tests/')
 
 import os
 os.environ['KERAS_BACKEND'] = "tensorflow" 
@@ -13,14 +13,16 @@ import numpy as np
 
 from data_generation import StanfordCarsDataloader as SCDL
 from tf_noisynn import LinearTransformNoiseLayer as LTNL 
-from tests.efficientnet import * 
+from efficientnet import * 
 
 import utils 
+
+tf.config.list_physical_devices('GPU')
 
 num_epochs = 12 
 valid_epochs = 3 
 
-metrics = ['accuracy', 'precision', 'recall']
+metrics = [keras.metrics.Accuracy(), keras.metrics.TopKCategoricalAccuracy(k=5)] 
 
 
 dnn_params = {
